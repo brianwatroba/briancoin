@@ -20,7 +20,7 @@ contract Ico {
   SpaceToken public tokenContract;
   phases public currentPhase;
   uint256 public contributionsTotal;
-  uint256 constant tokenConversionRate = 5;
+  uint256 public constant TOKEN_CONVERSION_RATE = 5;
   bool public paused = false;
   mapping(address => uint256) public contributions;
   mapping(address => uint256) public whitelist;
@@ -93,8 +93,8 @@ contract Ico {
     );
     uint256 contributed = contributions[msg.sender];
     contributions[msg.sender] -= contributed;
-    tokenContract.transfer(msg.sender, contributed * tokenConversionRate);
-    emit ClaimTokens(msg.sender, contributed * tokenConversionRate);
+    tokenContract.transfer(msg.sender, contributed * TOKEN_CONVERSION_RATE);
+    emit ClaimTokens(msg.sender, contributed * TOKEN_CONVERSION_RATE);
   }
 
   event ChangePhase(phases currentPhase);
