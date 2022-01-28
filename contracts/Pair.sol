@@ -1,10 +1,9 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
+import "hardhat/console.sol";
 import "./SpaceToken.sol";
 import "./Router.sol";
-
-import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -48,7 +47,7 @@ contract Pair is ERC20 {
   function burn(address _to) external lock returns (uint256 tokenOut, uint256 ethOut) {
     (uint256 tokenBalance, uint256 ethBalance) = _getBalances();
     uint256 lpTokenSupply = totalSupply();
-    uint256 liquidity = balanceOf[address(this)];
+    uint256 liquidity = balanceOf(address(this));
     tokenOut = (liquidity * tokenBalance) / lpTokenSupply;
     ethOut = (liquidity * ethBalance) / lpTokenSupply;
     _burn(address(this), liquidity);
@@ -81,6 +80,11 @@ contract Pair is ERC20 {
     require(tokenBalanceAdjusted * ethBalanceAdjusted >= tokenReserves * ethReserves * 100**2, "Pair: INCORRECT_K_VALUE");
     _updateReserves();
     // emit event
+  }
+
+  function getReserves() public view returns (uint256 _tokenReserves, uint256 _ethReserves) {
+    _tokenReserves = tokenReserves;
+    _ethReserves = ethReserves;
   }
 
   function _getBalances() private view returns (uint256 tokenBalance, uint256 ethBalance) {
