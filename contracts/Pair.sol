@@ -34,9 +34,12 @@ contract Pair is ERC20 {
     uint256 lpTokenSupply = totalSupply();
     if (lpTokenSupply == 0) {
       liquidity = _sqrt((tokenIn * ethIn) - MINIMUM_LIQUIDITY);
-      _mint(address(0), MINIMUM_LIQUIDITY);
+      _mint(address(spaceTokenContract), MINIMUM_LIQUIDITY);
     } else {
-      liquidity = _min((tokenIn * lpTokenSupply) / tokenReserves, (ethIn * lpTokenSupply) / ethReserves);
+      liquidity = _min(
+        (tokenIn * lpTokenSupply) / tokenReserves,
+        (ethIn * lpTokenSupply) / ethReserves
+      );
     }
     require(liquidity > 0, "Pair: INSUFFICIENT_LIQUIDITY");
     _mint(_to, liquidity);
@@ -44,7 +47,11 @@ contract Pair is ERC20 {
     // emit event
   }
 
-  function burn(address _to) external lock returns (uint256 tokenOut, uint256 ethOut) {
+  function burn(address _to)
+    external
+    lock
+    returns (uint256 tokenOut, uint256 ethOut)
+  {
     (uint256 tokenBalance, uint256 ethBalance) = _getBalances();
     uint256 lpTokenSupply = totalSupply();
     uint256 liquidity = balanceOf(address(this));
@@ -65,32 +72,48 @@ contract Pair is ERC20 {
     address _to
   ) external lock {
     require(_tokenOut > 0 || _ethOut > 0, "Pair: INSUFFICIENT_OUTPUT_AMOUNT");
-    require(_tokenOut < tokenReserves && _ethOut < ethReserves, "Pair: INSUFFICIENT_RESERVES");
+    require(
+      _tokenOut < tokenReserves && _ethOut < ethReserves,
+      "Pair: INSUFFICIENT_RESERVES"
+    );
     if (_tokenOut > 0) spaceTokenContract.transfer(_to, _tokenOut); // optimistically transfer
     if (_ethOut > 0) {
       (bool success, ) = _to.call{ value: _ethOut }(""); // optimistically transfer
       require(success, "Pair: FAILED_TO_SEND_ETH");
     }
     (uint256 tokenBalance, uint256 ethBalance) = _getBalances();
-    uint256 tokenIn = tokenBalance > tokenReserves - _tokenOut ? tokenBalance - (tokenReserves - _tokenOut) : 0;
-    uint256 ethIn = ethBalance > ethReserves - _ethOut ? ethBalance - (ethReserves - _ethOut) : 0;
+    uint256 tokenIn = tokenBalance > tokenReserves - _tokenOut
+      ? tokenBalance - (tokenReserves - _tokenOut)
+      : 0;
+    uint256 ethIn = ethBalance > ethReserves - _ethOut
+      ? ethBalance - (ethReserves - _ethOut)
+      : 0;
     require(tokenIn > 0 || ethIn > 0, "Pair: INSUFFICIENT_OUTPUT_AMOUNT");
     uint256 tokenBalanceAdjusted = (tokenBalance * 100) - (tokenIn * 1);
     uint256 ethBalanceAdjusted = (ethBalance * 100) - (ethIn * 1);
     require(
-      tokenBalanceAdjusted * ethBalanceAdjusted >= tokenReserves * ethReserves * 100**2,
+      tokenBalanceAdjusted * ethBalanceAdjusted >=
+        tokenReserves * ethReserves * 100**2,
       "Pair: INCORRECT_K_VALUE"
     );
     _updateReserves();
     // emit event
   }
 
-  function getReserves() public view returns (uint256 _tokenReserves, uint256 _ethReserves) {
+  function getReserves()
+    public
+    view
+    returns (uint256 _tokenReserves, uint256 _ethReserves)
+  {
     _tokenReserves = tokenReserves;
     _ethReserves = ethReserves;
   }
 
-  function _getBalances() private view returns (uint256 tokenBalance, uint256 ethBalance) {
+  function _getBalances()
+    private
+    view
+    returns (uint256 tokenBalance, uint256 ethBalance)
+  {
     tokenBalance = spaceTokenContract.balanceOf(address(this));
     ethBalance = address(this).balance;
   }

@@ -5,11 +5,8 @@ module.exports = {
     mocha: true,
     node: true,
   },
-  extends: [
-    "standard",
-    "plugin:prettier/recommended",
-    "plugin:node/recommended",
-  ],
+  extends: ["standard", "plugin:prettier/recommended", "plugin:node/recommended"],
+  "max-len": [0, 160, 2, { ignoreUrls: true }],
   parserOptions: {
     ecmaVersion: 12,
   },
