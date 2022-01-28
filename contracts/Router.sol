@@ -10,7 +10,7 @@ contract Router {
   Pair public pairContract;
   uint256 public constant FEE_PERCENTAGE = 1;
 
-  constructor(address _pairContractAddr, address _spaceTokenContractAddr) {
+  constructor(address payable _pairContractAddr, address payable _spaceTokenContractAddr) {
     pairContract = Pair(_pairContractAddr);
     spaceTokenContract = SpaceToken(_spaceTokenContractAddr);
   }

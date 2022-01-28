@@ -120,4 +120,6 @@ contract Pair is ERC20 {
       z = 1;
     }
   }
+
+  receive() external payable {}
 }
