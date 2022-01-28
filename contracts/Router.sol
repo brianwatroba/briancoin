@@ -15,15 +15,7 @@ contract Router {
     spaceTokenContract = SpaceToken(_spaceTokenContractAddr);
   }
 
-  function addLiquidity(uint256 _amountToken, address _to)
-    external
-    payable
-    returns (
-      uint256 amountToken,
-      uint256 amountETH,
-      uint256 liquidity
-    )
-  {
+  function addLiquidity(uint256 _amountToken, address _to) external payable returns (uint256 liquidity) {
     spaceTokenContract.transferFrom(msg.sender, address(pairContract), _amountToken);
     (bool success, ) = address(pairContract).call{ value: msg.value }("");
     require(success, "Router: FAILED_TO_SEND_ETH");

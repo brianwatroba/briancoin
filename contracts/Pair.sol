@@ -23,7 +23,7 @@ contract Pair is ERC20 {
     unlocked = 1;
   }
 
-  constructor(address _spaceTokenAddr) {
+  constructor(address _spaceTokenAddr) ERC20("LPToken", "LPT") {
     spaceTokenContract = SpaceToken(_spaceTokenAddr);
   }
 
@@ -77,7 +77,10 @@ contract Pair is ERC20 {
     require(tokenIn > 0 || ethIn > 0, "Pair: INSUFFICIENT_OUTPUT_AMOUNT");
     uint256 tokenBalanceAdjusted = (tokenBalance * 100) - (tokenIn * 1);
     uint256 ethBalanceAdjusted = (ethBalance * 100) - (ethIn * 1);
-    require(tokenBalanceAdjusted * ethBalanceAdjusted >= tokenReserves * ethReserves * 100**2, "Pair: INCORRECT_K_VALUE");
+    require(
+      tokenBalanceAdjusted * ethBalanceAdjusted >= tokenReserves * ethReserves * 100**2,
+      "Pair: INCORRECT_K_VALUE"
+    );
     _updateReserves();
     // emit event
   }
