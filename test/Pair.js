@@ -15,16 +15,22 @@ describe("Pair Contract", () => {
   let contributor1;
   let contributor2;
   let contributor3;
+  let initialEth = 2500;
+  let initialSPC = 15000;
+
+  const toETH = (number) => {
+    return ethers.utils.parseEther(number.toString());
+  };
 
   const getETHBalance = async (address) => {
-    return ethers.utils.formatEther(await provider.getBalance(address));
+    return await provider.getBalance(address);
   };
 
   const addInitialLiquidity = async () => {
-    // move ICO to GENERAL phase
+    // Move ICO to GENERAL phase
     await icoContract.connect(icoOwner).changePhase();
 
-    // put ETH into ICO via contributions
+    // Put ETH into ICO via contributions
     await icoContract.connect(contributor1).contribute({
       value: ethers.utils.parseUnits("900", "ether"),
     });
@@ -35,25 +41,22 @@ describe("Pair Contract", () => {
       value: ethers.utils.parseUnits("900", "ether"),
     });
 
-    icoContractSigner = await ethers.getSigner(icoContract.address);
+    // Impersonate the icoContract address to make it a signer, for calling other contracts
 
-    // give allownace from ICO to Router to move 40000 tokens
-    await spaceTokenContract
-      .connect(icoContractSigner)
-      .approve(routerContract.address, ethers.utils.parseUnits("15000", "ether"));
-
-    // impersonate the icoContract address to make it a signer, for calling other contracts
     await network.provider.request({
       method: "hardhat_impersonateAccount",
       params: [icoContract.address],
     });
 
-    // call addLiquidity with 2500 ETH and 15000 tokens
-    await routerContract
-      .connect(icoContractSigner)
-      .addLiquidity(ethers.utils.parseUnits("15000", "ether"), icoContract.address, {
-        value: ethers.utils.parseEther("2500"),
-      });
+    icoContractSigner = await ethers.getSigner(icoContract.address);
+
+    // Give allownace from ICO to Router to move intialSPC amount
+    await spaceTokenContract.connect(icoContractSigner).approve(routerContract.address, toETH(initialSPC));
+
+    // Call addLiquidity with initialEth and intialSPC amounts
+    await routerContract.connect(icoContractSigner).addLiquidity(toETH(initialSPC), icoContract.address, {
+      value: toETH(initialEth),
+    });
   };
 
   const deploy = async () => {
@@ -71,13 +74,15 @@ describe("Pair Contract", () => {
   describe("Deployment", () => {
     it("Should deploy all contracts", async () => {
       await deploy();
-      await expect(icoContract.address).to.be.properAddress;
-      await expect(spaceTokenContract.address).to.be.properAddress;
-      await expect(pairContract.address).to.be.properAddress;
-      await expect(routerContract.address).to.be.properAddress;
+      expect(icoContract.address, spaceTokenContract.address, pairContract.address, routerContract.address).to.be
+        .properAddress;
     });
-    it.only("Should deposit intitial liquidity into Pair contract", async () => {
+    it("Should deposit intitial liquidity into Pair contract", async () => {
       await deploy();
+      const pairSPCBalance = await spaceTokenContract.balanceOf(pairContract.address);
+      const pairEthBalance = await getETHBalance(pairContract.address);
+      expect(pairSPCBalance).to.deep.equal(toETH(initialSPC));
+      expect(pairEthBalance).to.deep.equal(toETH(initialEth));
     });
   });
 });
