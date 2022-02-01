@@ -45,7 +45,7 @@ contract Router {
     // emit event?
   }
 
-  function swapSPCforETH(uint256 _ethOutMin, uint256 _tokenIn) external payable returns (uint256 ethOut) {
+  function swapSPCforETH(uint256 _ethOutMin, uint256 _tokenIn) external returns (uint256 ethOut) {
     (uint256 tokenReserves, uint256 ethReserves) = pairContract.getReserves();
     ethOut = getAmountOut(_tokenIn, tokenReserves, ethReserves);
     require(ethOut >= _ethOutMin, "Router: MAX_SLIPPAGE_REACHED");

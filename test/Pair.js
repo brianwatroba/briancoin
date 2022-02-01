@@ -19,12 +19,13 @@ describe("Liquidity Pool", () => {
   let initialSPC = 15000;
   let additionalEth = 300;
   let additionalSPC = 1800;
+  let swapFeePercentage = 1;
 
-  const weiToETH = (number) => {
-    return ethers.utils.parseEther(number.toString());
+  const ethToWei = (eth) => {
+    return ethers.utils.parseUnits(eth.toString(), "ether");
   };
-  const ETHToWei = (number) => {
-    return ethers.utils.parseUnits(number.toString(), "wei");
+  const weiToEth = (wei) => {
+    return ethers.utils.formatUnits(wei.toString(), "ether");
   };
 
   const getETHBalance = async (address) => {
@@ -56,17 +57,17 @@ describe("Liquidity Pool", () => {
     icoContractSigner = await ethers.getSigner(icoContract.address);
 
     // Give allownace from ICO to Router to move intialSPC amount
-    await spaceTokenContract.connect(icoContractSigner).approve(routerContract.address, weiToETH(initialSPC));
+    await spaceTokenContract.connect(icoContractSigner).approve(routerContract.address, ethToWei(initialSPC));
 
     // Call addLiquidity with initialEth and intialSPC amounts
-    await routerContract.connect(icoContractSigner).addLiquidity(weiToETH(initialSPC), icoContract.address, {
-      value: weiToETH(initialEth),
+    await routerContract.connect(icoContractSigner).addLiquidity(ethToWei(initialSPC), icoContract.address, {
+      value: ethToWei(initialEth),
     });
   };
 
   const addAdditionalLiquidity = async () => {
     await icoContract.connect(addr1).contribute({
-      value: weiToETH(500),
+      value: ethToWei(500),
     });
 
     await icoContract.connect(icoOwner).changePhase();
@@ -76,20 +77,20 @@ describe("Liquidity Pool", () => {
     // const addr1SPC = await spaceTokenContract.balanceOf(addr1.address);
     // const addr1ETH = await getETHBalance(addr1.address);
 
-    await spaceTokenContract.connect(addr1).approve(routerContract.address, weiToETH(additionalSPC));
-    await routerContract.connect(addr1).addLiquidity(weiToETH(1800), addr1.address, {
-      value: weiToETH(additionalEth),
+    await spaceTokenContract.connect(addr1).approve(routerContract.address, ethToWei(additionalSPC));
+    await routerContract.connect(addr1).addLiquidity(ethToWei(1800), addr1.address, {
+      value: ethToWei(additionalEth),
     });
   };
 
   const addUnbalancedLiquidity = async () => {
     await icoContract.connect(addr2).contribute({
-      value: weiToETH(500),
+      value: ethToWei(500),
     });
     await icoContract.connect(addr2).claimTokens();
-    await spaceTokenContract.connect(addr2).approve(routerContract.address, weiToETH(additionalSPC));
-    await routerContract.connect(addr2).addLiquidity(weiToETH(1800), addr2.address, {
-      value: weiToETH(100),
+    await spaceTokenContract.connect(addr2).approve(routerContract.address, ethToWei(additionalSPC));
+    await routerContract.connect(addr2).addLiquidity(ethToWei(1800), addr2.address, {
+      value: ethToWei(100),
     });
   };
 
@@ -121,13 +122,13 @@ describe("Liquidity Pool", () => {
       await addInitialLiquidity();
       const pairSPCBalance = await spaceTokenContract.balanceOf(pairContract.address);
       const pairEthBalance = await getETHBalance(pairContract.address);
-      expect(pairSPCBalance).to.deep.equal(weiToETH(initialSPC));
-      expect(pairEthBalance).to.deep.equal(weiToETH(initialEth));
+      expect(pairSPCBalance).to.deep.equal(ethToWei(initialSPC));
+      expect(pairEthBalance).to.deep.equal(ethToWei(initialEth));
     });
   });
 
   describe("Pair Contract", async () => {
-    describe("mint()", () => {
+    describe("addLiquidity() and mint()", () => {
       beforeEach(async () => {
         await deploy();
       });
@@ -137,7 +138,7 @@ describe("Liquidity Pool", () => {
         const addr1Liq = await pairContract.balanceOf(addr1.address);
         const totalLiq = await pairContract.totalSupply();
         const totalSPCPooled = await spaceTokenContract.balanceOf(pairContract.address);
-        const addr1SPCPooledProportion = weiToETH(additionalSPC) / totalSPCPooled;
+        const addr1SPCPooledProportion = ethToWei(additionalSPC) / totalSPCPooled;
         const addr1LiqProportion = addr1Liq / totalLiq;
         expect(addr1SPCPooledProportion).to.deep.equal(addr1LiqProportion);
       });
@@ -164,12 +165,12 @@ describe("Liquidity Pool", () => {
         const addr2Liq = await pairContract.balanceOf(addr2.address);
         const totalLiq = await pairContract.totalSupply();
         const totalSPCPooled = await spaceTokenContract.balanceOf(pairContract.address);
-        const addr2SPCPooledProportion = weiToETH(additionalSPC) / totalSPCPooled;
+        const addr2SPCPooledProportion = ethToWei(additionalSPC) / totalSPCPooled;
         const addr2LiqProportion = addr2Liq / totalLiq;
         expect(addr2SPCPooledProportion).to.not.equal(addr2LiqProportion);
       });
     });
-    describe("burn()", () => {
+    describe("removeLiquidity() and burn()", () => {
       beforeEach(async () => {
         await deploy();
         await addInitialLiquidity();
@@ -203,13 +204,44 @@ describe("Liquidity Pool", () => {
         );
       });
     });
-    describe("burn()", () => {
+    describe("swapETHForSPC(), swapSPCForETH, swap()", () => {
       beforeEach(async () => {
         await deploy();
         await addInitialLiquidity();
         await addAdditionalLiquidity();
       });
-      it("Correctly returns share of pool", async () => {});
+      it("Correctly swaps SPC for ETH (minus fee)", async () => {
+        const amountIn = ethers.utils.parseUnits("600", "ether");
+        await spaceTokenContract.connect(addr1).approve(routerContract.address, amountIn);
+        const before = await getETHBalance(addr1.address);
+        const amountInMinusFee = amountIn.mul(100 - swapFeePercentage);
+        const [tokenReserves, ethReserves] = await pairContract.getReserves();
+        const numerator = amountInMinusFee.mul(ethReserves);
+        const denominator = amountInMinusFee.add(tokenReserves.mul(100));
+        const expectedAmountOut = numerator.div(denominator);
+        await routerContract.connect(addr1).swapSPCforETH(0, amountIn);
+        const after = await getETHBalance(addr1.address);
+        const amountOut = after.sub(before);
+        expect(parseInt(weiToEth(amountOut))).to.equal(parseInt(weiToEth(expectedAmountOut)));
+      });
+      it.only("Correctly swaps ETH for SPC (minus fee)", async () => {
+        const amountIn = ethers.utils.parseUnits("10", "ether");
+        // await spaceTokenContract.connect(addr1).approve(routerContract.address, amountIn);
+        const before = await spaceTokenContract.balanceOf(addr1.address);
+        const amountInMinusFee = amountIn.mul(100 - swapFeePercentage);
+        const [tokenReserves, ethReserves] = await pairContract.getReserves();
+        const numerator = amountInMinusFee.mul(tokenReserves);
+        const denominator = amountInMinusFee.add(ethReserves.mul(100));
+        const expectedAmountOut = numerator.div(denominator);
+        await routerContract.connect(addr1).swapETHforSPC(0, { value: amountIn });
+        const after = await spaceTokenContract.balanceOf(addr1.address);
+        const amountOut = after.sub(before);
+        expect(parseInt(weiToEth(amountOut))).to.equal(parseInt(weiToEth(expectedAmountOut)));
+      });
+      it("Fails if: violates constant product formula", async () => {});
+      it("Fails if: slippage beyond max tolerance", async () => {});
+      it("Fails if: called with no output", async () => {});
+      it("Fails if: trying to withdraw more than reserves", async () => {});
     });
   });
 });
