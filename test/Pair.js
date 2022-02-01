@@ -47,23 +47,7 @@ describe("Liquidity Pool", () => {
       value: ethers.utils.parseUnits("900", "ether"),
     });
 
-    // Impersonate the icoContract address to make it a signer, for calling other contracts
-
-    await network.provider.request({
-      method: "hardhat_impersonateAccount",
-      params: [icoContract.address],
-    });
-
-    icoContractSigner = await ethers.getSigner(icoContract.address);
-
-    // Give allownace from ICO to Router to move intialSPC amount
-    // await spaceTokenContract.connect(icoContractSigner).approve(routerContract.address, ethToWei(initialSPC));
-
-    // Call addLiquidity with initialEth and intialSPC amounts
-    // await routerContract.connect(icoContractSigner).addLiquidity(ethToWei(initialSPC), icoContract.address, {
-    //   value: ethToWei(initialEth),
-    // });
-
+    // Withdraw() on ICO, add liquidity to LP
     await icoContract.connect(icoOwner).withdraw(routerContract.address, ethToWei(initialSPC), ethToWei(initialEth));
   };
 
@@ -71,14 +55,8 @@ describe("Liquidity Pool", () => {
     await icoContract.connect(addr1).contribute({
       value: ethToWei(500),
     });
-
     await icoContract.connect(icoOwner).changePhase();
-
     await icoContract.connect(addr1).claimTokens();
-
-    // const addr1SPC = await spaceTokenContract.balanceOf(addr1.address);
-    // const addr1ETH = await getETHBalance(addr1.address);
-
     await spaceTokenContract.connect(addr1).approve(routerContract.address, ethToWei(additionalSPC));
     await routerContract.connect(addr1).addLiquidity(ethToWei(1800), addr1.address, {
       value: ethToWei(additionalEth),
@@ -113,15 +91,15 @@ describe("Liquidity Pool", () => {
   };
 
   describe("Deployment", () => {
-    it("Should deploy all contracts", async () => {
+    beforeEach(async () => {
       await deploy();
       await addInitialLiquidity();
+    });
+    it("Should deploy all contracts", async () => {
       expect(icoContract.address, spaceTokenContract.address, pairContract.address, routerContract.address).to.be
         .properAddress;
     });
     it("Should deposit intitial liquidity into Pair contract", async () => {
-      await deploy();
-      await addInitialLiquidity();
       const pairSPCBalance = await spaceTokenContract.balanceOf(pairContract.address);
       const pairEthBalance = await getETHBalance(pairContract.address);
       expect(pairSPCBalance).to.deep.equal(ethToWei(initialSPC));
@@ -130,12 +108,19 @@ describe("Liquidity Pool", () => {
   });
 
   describe("addLiquidity() and mint()", () => {
+    it("Burns minimum liquidity if pool is new", async () => {
+      await deploy();
+      const minLiquidity = await pairContract.MINIMUM_LIQUIDITY();
+      expect(await pairContract.balanceOf(spaceTokenContract.address)).to.deep.equal(0);
+      await addInitialLiquidity();
+      expect(await pairContract.balanceOf(spaceTokenContract.address)).to.deep.equal(minLiquidity);
+    });
     beforeEach(async () => {
       await deploy();
-    });
-    it("Gives share of liquidity tokens proportional to input", async () => {
       await addInitialLiquidity();
       await addAdditionalLiquidity();
+    });
+    it("Gives share of liquidity tokens proportional to input", async () => {
       const addr1Liq = await pairContract.balanceOf(addr1.address);
       const totalLiq = await pairContract.totalSupply();
       const totalSPCPooled = await spaceTokenContract.balanceOf(pairContract.address);
@@ -144,23 +129,14 @@ describe("Liquidity Pool", () => {
       expect(addr1SPCPooledProportion).to.deep.equal(addr1LiqProportion);
     });
     it("Sum of liquidity tokens minus initial burn equals total liquidity", async () => {
-      await addInitialLiquidity();
-      await addAdditionalLiquidity();
       const minLiquidity = await pairContract.MINIMUM_LIQUIDITY();
       const addr1Liq = await pairContract.balanceOf(addr1.address);
       const icoLiq = await pairContract.balanceOf(icoContract.address);
       const totalLiq = await pairContract.totalSupply();
       expect(addr1Liq.add(icoLiq)).to.deep.equal(totalLiq.sub(minLiquidity));
     });
-    it("Burns minimum liquidity if pool is new", async () => {
-      const minLiquidity = await pairContract.MINIMUM_LIQUIDITY();
-      expect(await pairContract.balanceOf(spaceTokenContract.address)).to.deep.equal(0);
-      await addInitialLiquidity();
-      expect(await pairContract.balanceOf(spaceTokenContract.address)).to.deep.equal(minLiquidity);
-    });
+
     it("Grants liquidity equal to whichever amount is lesser (ETH or SPC)", async () => {
-      await addInitialLiquidity();
-      await addAdditionalLiquidity();
       // addUnbalancedLiquidity() gives less ETH, same SPC as addAdditionalLiquidity
       await addUnbalancedLiquidity();
       const addr2Liq = await pairContract.balanceOf(addr2.address);
