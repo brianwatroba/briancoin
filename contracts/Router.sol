@@ -23,12 +23,15 @@ contract Router {
     // emit event
   }
 
-  function removeLiquidity(uint256 _liquidity, address _to) external returns (uint256 tokenOut, uint256 ethOut) {
+  function removeLiquidity(uint256 _liquidity, address payable _to)
+    external
+    returns (uint256 tokenOut, uint256 ethOut)
+  {
     pairContract.transferFrom(_to, address(pairContract), _liquidity);
-    (tokenOut, ethOut) = pairContract.burn(address(this));
-    spaceTokenContract.transfer(_to, tokenOut);
-    (bool success, ) = _to.call{ value: ethOut }("");
-    require(success, "Router: FAILED_TO_SEND_ETH");
+    (tokenOut, ethOut) = pairContract.burn(_to);
+    // spaceTokenContract.transfer(_to, tokenOut);
+    // (bool success, ) = _to.call{ value: ethOut }("");
+    // require(success, "Router: FAILED_TO_SEND_ETH");
     // emit event
   }
 

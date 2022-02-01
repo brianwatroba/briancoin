@@ -33,10 +33,7 @@ contract Pair is ERC20 {
     uint256 ethIn = ethBalance - ethReserves;
     uint256 lpTokenSupply = totalSupply();
     if (lpTokenSupply == 0) {
-      // console.log("token in", tokenIn);
-      // console.log("eth in", ethIn);
       liquidity = _sqrt((tokenIn * ethIn) - MINIMUM_LIQUIDITY);
-      // console.log("liquidity", liquidity);
       _mint(address(spaceTokenContract), MINIMUM_LIQUIDITY);
     } else {
       liquidity = _min((tokenIn * lpTokenSupply) / tokenReserves, (ethIn * lpTokenSupply) / ethReserves);
@@ -47,7 +44,7 @@ contract Pair is ERC20 {
     // emit event
   }
 
-  function burn(address _to) external lock returns (uint256 tokenOut, uint256 ethOut) {
+  function burn(address payable _to) external lock returns (uint256 tokenOut, uint256 ethOut) {
     (uint256 tokenBalance, uint256 ethBalance) = _getBalances();
     uint256 lpTokenSupply = totalSupply();
     uint256 liquidity = balanceOf(address(this));
