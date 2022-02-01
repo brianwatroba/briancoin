@@ -127,121 +127,138 @@ describe("Liquidity Pool", () => {
     });
   });
 
-  describe("Pair Contract", async () => {
-    describe("addLiquidity() and mint()", () => {
-      beforeEach(async () => {
-        await deploy();
-      });
-      it("Gives share of liquidity tokens proportional to input", async () => {
-        await addInitialLiquidity();
-        await addAdditionalLiquidity();
-        const addr1Liq = await pairContract.balanceOf(addr1.address);
-        const totalLiq = await pairContract.totalSupply();
-        const totalSPCPooled = await spaceTokenContract.balanceOf(pairContract.address);
-        const addr1SPCPooledProportion = ethToWei(additionalSPC) / totalSPCPooled;
-        const addr1LiqProportion = addr1Liq / totalLiq;
-        expect(addr1SPCPooledProportion).to.deep.equal(addr1LiqProportion);
-      });
-      it("Sum of liquidity tokens minus initial burn equals total liquidity", async () => {
-        await addInitialLiquidity();
-        await addAdditionalLiquidity();
-        const minLiquidity = await pairContract.MINIMUM_LIQUIDITY();
-        const addr1Liq = await pairContract.balanceOf(addr1.address);
-        const icoLiq = await pairContract.balanceOf(icoContract.address);
-        const totalLiq = await pairContract.totalSupply();
-        expect(addr1Liq.add(icoLiq)).to.deep.equal(totalLiq.sub(minLiquidity));
-      });
-      it("Burns minimum liquidity if pool is new", async () => {
-        const minLiquidity = await pairContract.MINIMUM_LIQUIDITY();
-        expect(await pairContract.balanceOf(spaceTokenContract.address)).to.deep.equal(0);
-        await addInitialLiquidity();
-        expect(await pairContract.balanceOf(spaceTokenContract.address)).to.deep.equal(minLiquidity);
-      });
-      it("Grants liquidity equal to whichever amount is lesser (ETH or SPC)", async () => {
-        await addInitialLiquidity();
-        await addAdditionalLiquidity();
-        // addUnbalancedLiquidity() gives less ETH, same SPC as addAdditionalLiquidity
-        await addUnbalancedLiquidity();
-        const addr2Liq = await pairContract.balanceOf(addr2.address);
-        const totalLiq = await pairContract.totalSupply();
-        const totalSPCPooled = await spaceTokenContract.balanceOf(pairContract.address);
-        const addr2SPCPooledProportion = ethToWei(additionalSPC) / totalSPCPooled;
-        const addr2LiqProportion = addr2Liq / totalLiq;
-        expect(addr2SPCPooledProportion).to.not.equal(addr2LiqProportion);
-      });
+  describe("addLiquidity() and mint()", () => {
+    beforeEach(async () => {
+      await deploy();
     });
-    describe("removeLiquidity() and burn()", () => {
-      beforeEach(async () => {
-        await deploy();
-        await addInitialLiquidity();
-        await addAdditionalLiquidity();
-      });
-      it("Correctly returns share of pool", async () => {
-        const ethBefore = await getETHBalance(addr1.address);
-        const SPCBefore = await spaceTokenContract.balanceOf(addr1.address);
-        await removeAdditionalLiquidity();
-        const ethAfter = await getETHBalance(addr1.address);
-        const SPCAfter = await spaceTokenContract.balanceOf(addr1.address);
-        const SPCDifference = SPCAfter.sub(SPCBefore);
-        const ethDifference = ethAfter.sub(ethBefore);
-        expect(ethers.BigNumber.from(SPCDifference)).to.be.closeTo(
-          ethers.utils.parseUnits(additionalSPC.toString(), "ether"),
-          10
-        );
-        expect(ethers.BigNumber.from(ethDifference)).to.be.closeTo(
-          ethers.utils.parseUnits(additionalEth.toString(), "ether"),
-          10 ** 15
-        );
-      });
-      it("Burns the given liquidity", async () => {
-        await removeAdditionalLiquidity();
-        const liquidityAfter = await pairContract.balanceOf(addr1.address);
-        expect(liquidityAfter).to.equal(0);
-      });
-      it("Fails if not sent tokens/eth", async () => {
-        await expect(routerContract.connect(addr1).removeLiquidity(0, addr1.address)).to.be.revertedWith(
-          "Pair: INSUFFICIENT_OUTPUT"
-        );
-      });
+    it("Gives share of liquidity tokens proportional to input", async () => {
+      await addInitialLiquidity();
+      await addAdditionalLiquidity();
+      const addr1Liq = await pairContract.balanceOf(addr1.address);
+      const totalLiq = await pairContract.totalSupply();
+      const totalSPCPooled = await spaceTokenContract.balanceOf(pairContract.address);
+      const addr1SPCPooledProportion = ethToWei(additionalSPC) / totalSPCPooled;
+      const addr1LiqProportion = addr1Liq / totalLiq;
+      expect(addr1SPCPooledProportion).to.deep.equal(addr1LiqProportion);
     });
-    describe("swapETHForSPC(), swapSPCForETH, swap()", () => {
-      beforeEach(async () => {
-        await deploy();
-        await addInitialLiquidity();
-        await addAdditionalLiquidity();
-      });
-      it("Correctly swaps SPC for ETH (minus fee)", async () => {
-        const amountIn = ethers.utils.parseUnits("600", "ether");
-        await spaceTokenContract.connect(addr1).approve(routerContract.address, amountIn);
-        const before = await getETHBalance(addr1.address);
-        const amountInMinusFee = amountIn.mul(100 - swapFeePercentage);
-        const [tokenReserves, ethReserves] = await pairContract.getReserves();
-        const numerator = amountInMinusFee.mul(ethReserves);
-        const denominator = amountInMinusFee.add(tokenReserves.mul(100));
-        const expectedAmountOut = numerator.div(denominator);
-        await routerContract.connect(addr1).swapSPCforETH(0, amountIn);
-        const after = await getETHBalance(addr1.address);
-        const amountOut = after.sub(before);
-        expect(parseInt(weiToEth(amountOut))).to.equal(parseInt(weiToEth(expectedAmountOut)));
-      });
-      it.only("Correctly swaps ETH for SPC (minus fee)", async () => {
-        const amountIn = ethers.utils.parseUnits("10", "ether");
-        // await spaceTokenContract.connect(addr1).approve(routerContract.address, amountIn);
-        const before = await spaceTokenContract.balanceOf(addr1.address);
-        const amountInMinusFee = amountIn.mul(100 - swapFeePercentage);
-        const [tokenReserves, ethReserves] = await pairContract.getReserves();
-        const numerator = amountInMinusFee.mul(tokenReserves);
-        const denominator = amountInMinusFee.add(ethReserves.mul(100));
-        const expectedAmountOut = numerator.div(denominator);
-        await routerContract.connect(addr1).swapETHforSPC(0, { value: amountIn });
-        const after = await spaceTokenContract.balanceOf(addr1.address);
-        const amountOut = after.sub(before);
-        expect(parseInt(weiToEth(amountOut))).to.equal(parseInt(weiToEth(expectedAmountOut)));
-      });
-      it("Fails if: violates constant product formula", async () => {});
-      it("Fails if: slippage beyond max tolerance", async () => {});
-      it("Fails if: called with no output", async () => {});
-      it("Fails if: trying to withdraw more than reserves", async () => {});
+    it("Sum of liquidity tokens minus initial burn equals total liquidity", async () => {
+      await addInitialLiquidity();
+      await addAdditionalLiquidity();
+      const minLiquidity = await pairContract.MINIMUM_LIQUIDITY();
+      const addr1Liq = await pairContract.balanceOf(addr1.address);
+      const icoLiq = await pairContract.balanceOf(icoContract.address);
+      const totalLiq = await pairContract.totalSupply();
+      expect(addr1Liq.add(icoLiq)).to.deep.equal(totalLiq.sub(minLiquidity));
+    });
+    it("Burns minimum liquidity if pool is new", async () => {
+      const minLiquidity = await pairContract.MINIMUM_LIQUIDITY();
+      expect(await pairContract.balanceOf(spaceTokenContract.address)).to.deep.equal(0);
+      await addInitialLiquidity();
+      expect(await pairContract.balanceOf(spaceTokenContract.address)).to.deep.equal(minLiquidity);
+    });
+    it("Grants liquidity equal to whichever amount is lesser (ETH or SPC)", async () => {
+      await addInitialLiquidity();
+      await addAdditionalLiquidity();
+      // addUnbalancedLiquidity() gives less ETH, same SPC as addAdditionalLiquidity
+      await addUnbalancedLiquidity();
+      const addr2Liq = await pairContract.balanceOf(addr2.address);
+      const totalLiq = await pairContract.totalSupply();
+      const totalSPCPooled = await spaceTokenContract.balanceOf(pairContract.address);
+      const addr2SPCPooledProportion = ethToWei(additionalSPC) / totalSPCPooled;
+      const addr2LiqProportion = addr2Liq / totalLiq;
+      expect(addr2SPCPooledProportion).to.not.equal(addr2LiqProportion);
+    });
+  });
+  describe("removeLiquidity() and burn()", () => {
+    beforeEach(async () => {
+      await deploy();
+      await addInitialLiquidity();
+      await addAdditionalLiquidity();
+    });
+    it("Correctly returns share of pool", async () => {
+      const ethBefore = await getETHBalance(addr1.address);
+      const SPCBefore = await spaceTokenContract.balanceOf(addr1.address);
+      await removeAdditionalLiquidity();
+      const ethAfter = await getETHBalance(addr1.address);
+      const SPCAfter = await spaceTokenContract.balanceOf(addr1.address);
+      const SPCDifference = SPCAfter.sub(SPCBefore);
+      const ethDifference = ethAfter.sub(ethBefore);
+      expect(ethers.BigNumber.from(SPCDifference)).to.be.closeTo(
+        ethers.utils.parseUnits(additionalSPC.toString(), "ether"),
+        10
+      );
+      expect(ethers.BigNumber.from(ethDifference)).to.be.closeTo(
+        ethers.utils.parseUnits(additionalEth.toString(), "ether"),
+        10 ** 15
+      );
+    });
+    it("Burns the given liquidity", async () => {
+      await removeAdditionalLiquidity();
+      const liquidityAfter = await pairContract.balanceOf(addr1.address);
+      expect(liquidityAfter).to.equal(0);
+    });
+    it("Fails if not sent tokens/eth", async () => {
+      await expect(routerContract.connect(addr1).removeLiquidity(0, addr1.address)).to.be.revertedWith(
+        "Pair: INSUFFICIENT_OUTPUT"
+      );
+    });
+  });
+  describe("swapETHForSPC(), swapSPCForETH, swap()", () => {
+    beforeEach(async () => {
+      await deploy();
+      await addInitialLiquidity();
+      await addAdditionalLiquidity();
+    });
+    it("Correctly swaps SPC for ETH (minus fee)", async () => {
+      const amountIn = ethers.utils.parseUnits("600", "ether");
+      await spaceTokenContract.connect(addr1).approve(routerContract.address, amountIn);
+      const before = await getETHBalance(addr1.address);
+      const amountInMinusFee = amountIn.mul(100 - swapFeePercentage);
+      const [tokenReserves, ethReserves] = await pairContract.getReserves();
+      const numerator = amountInMinusFee.mul(ethReserves);
+      const denominator = amountInMinusFee.add(tokenReserves.mul(100));
+      const expectedAmountOut = numerator.div(denominator);
+      await routerContract.connect(addr1).swapSPCforETH(0, amountIn);
+      const after = await getETHBalance(addr1.address);
+      const amountOut = after.sub(before);
+      expect(parseInt(weiToEth(amountOut))).to.equal(parseInt(weiToEth(expectedAmountOut)));
+    });
+    it("Correctly swaps ETH for SPC (minus fee)", async () => {
+      const amountIn = ethToWei("10");
+      const before = await spaceTokenContract.balanceOf(addr1.address);
+      const amountInMinusFee = amountIn.mul(100 - swapFeePercentage);
+      const [tokenReserves, ethReserves] = await pairContract.getReserves();
+      const numerator = amountInMinusFee.mul(tokenReserves);
+      const denominator = amountInMinusFee.add(ethReserves.mul(100));
+      const expectedAmountOut = numerator.div(denominator);
+      await routerContract.connect(addr1).swapETHforSPC(0, { value: amountIn });
+      const after = await spaceTokenContract.balanceOf(addr1.address);
+      const amountOut = after.sub(before);
+      expect(parseInt(weiToEth(amountOut))).to.equal(parseInt(weiToEth(expectedAmountOut)));
+    });
+    it("Fails if: swap() called directly but desired amounts violate constant product formula", async () => {
+      const SPCIn = ethToWei(100);
+      const desiredETHOut = ethToWei(200);
+      await spaceTokenContract.connect(addr1).transfer(pairContract.address, SPCIn);
+      await expect(pairContract.connect(addr1).swap(0, desiredETHOut, addr1.address)).to.be.revertedWith(
+        "Pair: INCORRECT_K_VALUE"
+      );
+    });
+    it("Fails if: slippage beyond max tolerance", async () => {
+      const amountIn = ethToWei(600);
+      const minOut = ethToWei(120);
+      await spaceTokenContract.connect(addr1).approve(routerContract.address, amountIn);
+      await expect(routerContract.connect(addr1).swapSPCforETH(minOut, amountIn)).to.be.revertedWith(
+        "Router: MAX_SLIPPAGE_REACHED"
+      );
+    });
+    it("Fails if: called with no output", async () => {
+      const amountIn = ethToWei(600);
+      const minOut = ethToWei(90);
+      await spaceTokenContract.connect(addr1).approve(routerContract.address, amountIn);
+      await expect(routerContract.connect(addr1).swapSPCforETH(minOut, 0)).to.be.revertedWith(
+        "Router: INSUFFICIENT_AMOUNT_IN"
+      );
     });
   });
 });

@@ -29,10 +29,7 @@ contract Router {
   {
     pairContract.transferFrom(_to, address(pairContract), _liquidity);
     (tokenOut, ethOut) = pairContract.burn(_to);
-    // spaceTokenContract.transfer(_to, tokenOut);
-    // (bool success, ) = _to.call{ value: ethOut }("");
-    // require(success, "Router: FAILED_TO_SEND_ETH");
-    // emit event
+    // emit event?
   }
 
   function swapETHforSPC(uint256 _tokenOutMin) external payable returns (uint256 tokenOut) {
