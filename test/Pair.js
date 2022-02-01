@@ -57,12 +57,14 @@ describe("Liquidity Pool", () => {
     icoContractSigner = await ethers.getSigner(icoContract.address);
 
     // Give allownace from ICO to Router to move intialSPC amount
-    await spaceTokenContract.connect(icoContractSigner).approve(routerContract.address, ethToWei(initialSPC));
+    // await spaceTokenContract.connect(icoContractSigner).approve(routerContract.address, ethToWei(initialSPC));
 
     // Call addLiquidity with initialEth and intialSPC amounts
-    await routerContract.connect(icoContractSigner).addLiquidity(ethToWei(initialSPC), icoContract.address, {
-      value: ethToWei(initialEth),
-    });
+    // await routerContract.connect(icoContractSigner).addLiquidity(ethToWei(initialSPC), icoContract.address, {
+    //   value: ethToWei(initialEth),
+    // });
+
+    await icoContract.connect(icoOwner).withdraw(routerContract.address, ethToWei(initialSPC), ethToWei(initialEth));
   };
 
   const addAdditionalLiquidity = async () => {

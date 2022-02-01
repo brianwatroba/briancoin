@@ -10,6 +10,10 @@ import "./SpaceToken.sol";
  * and eventually withdraw their SpaceTokens in the final OPEN phase.
  */
 
+interface IRouter {
+  function addLiquidity(uint256 _amountToken, address _to) external payable returns (uint256 liquidity);
+}
+
 contract Ico {
   enum phases {
     SEED,
@@ -43,6 +47,15 @@ contract Ico {
     tokenContract = new SpaceToken(500000);
   }
 
+  function withdraw(
+    address payable _routerAddress,
+    uint256 _tokenAmount,
+    uint256 _ethAmount
+  ) external onlyOwner {
+    tokenContract.approve(_routerAddress, _tokenAmount);
+    IRouter(_routerAddress).addLiquidity{ value: _ethAmount }(_tokenAmount, address(this));
+  }
+
   /// @dev Owner can move ICO phase forward (but not backward)
   function changePhase() external onlyOwner {
     require(currentPhase != phases.OPEN, "ICO is already in final phase");
@@ -59,16 +72,10 @@ contract Ico {
 
   /// @dev Individuals can exchange ETH for SpaceTokens
   function contribute() external payable onlyIfNotPaused {
-    require(
-      msg.value + contributionsTotal <= 30000 ether,
-      "cannot contribute more than ICO goal"
-    );
+    require(msg.value + contributionsTotal <= 30000 ether, "cannot contribute more than ICO goal");
     if (currentPhase == phases.SEED) {
       require(whitelist[msg.sender] > 0, "address not on whitelist");
-      require(
-        msg.value + contributionsTotal <= 15000 ether,
-        "cannot contribute more than total phase limit"
-      );
+      require(msg.value + contributionsTotal <= 15000 ether, "cannot contribute more than total phase limit");
       require(
         msg.value + contributions[msg.sender] <= 1500 ether,
         "cannot contribute more than individual phase limit"
@@ -87,10 +94,7 @@ contract Ico {
 
   /// @dev Contributors can get access to their SpaceTokens
   function claimTokens() external onlyIfNotPaused {
-    require(
-      currentPhase == phases.OPEN,
-      "ICO must be in open phase to claim tokens"
-    );
+    require(currentPhase == phases.OPEN, "ICO must be in open phase to claim tokens");
     uint256 contributed = contributions[msg.sender];
     contributions[msg.sender] -= contributed;
     tokenContract.transfer(msg.sender, contributed * TOKEN_CONVERSION_RATE);

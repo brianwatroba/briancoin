@@ -32,11 +32,7 @@ contract SpaceToken is ERC20 {
   }
 
   /// @dev ERC-20 transfer(), overridden to include 2% fee logic
-  function transfer(address _recipient, uint256 _amount)
-    public
-    override
-    returns (bool)
-  {
+  function transfer(address _recipient, uint256 _amount) public override returns (bool) {
     uint256 fee = calculateFee(_amount, _recipient);
     if (fee > 0) super.transfer(treasury, fee);
     return super.transfer(_recipient, _amount - fee);
@@ -54,13 +50,8 @@ contract SpaceToken is ERC20 {
   }
 
   /// @dev Cacluates fee amount and returns it
-  function calculateFee(uint256 _amount, address _recipient)
-    private
-    view
-    returns (uint256)
-  {
-    if (!feeEnabled || msg.sender == treasury || _recipient == treasury)
-      return 0;
+  function calculateFee(uint256 _amount, address _recipient) private view returns (uint256) {
+    if (!feeEnabled || msg.sender == treasury || _recipient == treasury) return 0;
     return _amount / 50;
   }
 
