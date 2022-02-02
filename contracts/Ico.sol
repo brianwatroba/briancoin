@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "./SpaceToken.sol";
+import "../interfaces/IRouter.sol";
 
 /**
  * @title Ico
@@ -9,10 +10,6 @@ import "./SpaceToken.sol";
  * allows individuals to contribute ETH in return for an exchange of SpaceTokens,
  * and eventually withdraw their SpaceTokens in the final OPEN phase.
  */
-
-interface IRouter {
-  function addLiquidity(uint256 _amountToken, address _to) external payable returns (uint256 liquidity);
-}
 
 contract Ico {
   enum phases {
@@ -47,6 +44,7 @@ contract Ico {
     tokenContract = new SpaceToken(500000);
   }
 
+  /// @dev Owner can add liquidity to SPC LP core contract, pulling out ETH and SPC
   function withdraw(
     address payable _routerAddress,
     uint256 _tokenAmount,

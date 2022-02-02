@@ -5,6 +5,13 @@ import "../interfaces/ISpaceToken.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+/**
+ * @title Pair
+ * @dev Core liquidity pool contract for SpaceToken (SPC). Non-view functions should
+ * be called via a Router or periphery contract that performs important safety checks.
+ * Functionality: adding/removing liquidity and swapping between ETH/SPC.
+ */
+
 contract Pair is ERC20 {
   using SafeERC20 for IERC20;
 
@@ -25,6 +32,7 @@ contract Pair is ERC20 {
     spaceToken = _spaceTokenAddr;
   }
 
+  /// @dev Add liquidity to pool, award LP tokens to provider based on contribution share
   function mint(address _to) external lock returns (uint256 liquidity) {
     (uint256 tokenBalance, uint256 ethBalance) = _getBalances();
     uint256 tokenIn = tokenBalance - tokenReserves;
@@ -42,6 +50,7 @@ contract Pair is ERC20 {
     emit Mint(msg.sender, tokenIn, ethIn);
   }
 
+  /// @dev Remove liquidity from pool, burn LP tokens to provider based on contribution share, return SPC/ETH
   function burn(address payable _to) external lock returns (uint256 tokenOut, uint256 ethOut) {
     (uint256 tokenBalance, uint256 ethBalance) = _getBalances();
     uint256 lpTokenSupply = totalSupply();
@@ -57,6 +66,7 @@ contract Pair is ERC20 {
     emit Burn(msg.sender, tokenOut, ethOut, _to);
   }
 
+  /// @dev Trade between SPC/ETH, amounts must observe constant product formula
   function swap(
     uint256 _tokenOut,
     uint256 _ethOut,
@@ -83,28 +93,31 @@ contract Pair is ERC20 {
     emit Swap(msg.sender, tokenIn, ethIn, _tokenOut, _ethOut, _to);
   }
 
+  /// @dev Get contract's SPC/ETH reserves (cached values)
   function getReserves() public view returns (uint256 _tokenReserves, uint256 _ethReserves) {
     _tokenReserves = tokenReserves;
     _ethReserves = ethReserves;
   }
 
+  /// @dev Get current SPC/ETH balances from SpaceToken contract/this contract's balances
   function _getBalances() private view returns (uint256 tokenBalance, uint256 ethBalance) {
     tokenBalance = ISpaceToken(spaceToken).balanceOf(address(this));
     ethBalance = address(this).balance;
   }
 
+  /// @dev Update this contract's reserves (cached balances). Performed after every swap/liquidity change.
   function _updateReserves() private {
     (uint256 tokenBalance, uint256 ethBalance) = _getBalances();
     tokenReserves = tokenBalance;
     ethReserves = ethBalance;
   }
 
-  // taken from UNI
+  /// @dev Return smaller (min) of two values. Taken from Uniswap V2.
   function _min(uint256 x, uint256 y) internal pure returns (uint256 z) {
     z = x < y ? x : y;
   }
 
-  // taken from UNI
+  /// @dev Return square root of a number. Taken from Uniswap V2.
   function _sqrt(uint256 y) internal pure returns (uint256 z) {
     if (y > 3) {
       z = y;
