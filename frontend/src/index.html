@@ -1,19 +1,17 @@
 <title>Sample Project</title>
-<link rel="stylesheet" type="text/css" href="./index.css">
+<link rel="stylesheet" type="text/css" href="./index.css" />
 
 <h1>Project LP</h1>
 
 <section>
   <h2>ICO</h2>
 
-  <div>
-    SPC left to buy: <span id="ico_spc_left"></span>
-  </div>
+  <div>SPC left to buy: <span id="ico_spc_left"></span></div>
 
   <form id="ico_spc_buy">
-    Buy SPC
-    <input name="eth" value="0.1" autocomplete="off">
-    <button type="submit">Buy</button>
+    ETH to spend (receive 5x SPC):
+    <input name="eth" value="0.1" autocomplete="off" />
+    <button type="submit">Buy and claim</button>
   </form>
 </section>
 
@@ -21,14 +19,14 @@
   <h2>Pool</h2>
 
   <form id="lp_deposit">
-    Deposit for LP tokens <br>
-    <input name="eth" value="0" autocomplete="off"> ETH<br>
-    <input name="spc" value="0" autocomplete="off"> SPC<br>
+    Deposit for LP tokens <br />
+    <input name="eth" value="0" autocomplete="off" /> ETH<br />
+    <input name="spc" value="0" autocomplete="off" /> SPC<br />
     <button type="submit">Deposit</button>
   </form>
 
   <form id="lp_withdraw">
-    Withdraw from pool <br>
+    Withdraw from pool <br />
     <button type="submit">Withdraw All</button>
   </form>
 </section>
@@ -37,11 +35,16 @@
   <h2>Trade</h2>
 
   <form id="swap">
-    Trade SPC for ETH <br>
-    <input name="amount_in" value="0" autocomplete="off"> <span id="swap_in_label">ETH</span>
-    <small id="switcher" style="text-decoration: underline; cursor: pointer;">swap</small>
-    <br>
-    <span id="swap_out_label">0 SPC</span><br>
+    Trade SPC for ETH <br />
+    <input name="amount_in" value="0" autocomplete="off" /> <span id="swap_in_label">ETH</span>
+    <small id="switcher" style="text-decoration: underline; cursor: pointer">swap</small>
+    <br />
+    <input name="min_amount_out" value="0" autocomplete="off" /> <span id="min_amount_out_label">Min amount out</span>
+
+    <br />
+    <span id="swap_out_label">to receive: 0 SPC</span><br />
+    <!-- <input name="min_amount_out" value="0" autocomplete="off" /> <span id="min_amount_out_label">Min amount out</span>
+    <br /> -->
     <button type="submit">Trade</button>
   </form>
 </section>
