@@ -1,9 +1,7 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-import "hardhat/console.sol";
-import "./SpaceToken.sol";
-import "./Router.sol";
+import "../interfaces/ISpaceToken.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -11,7 +9,7 @@ contract Pair is ERC20 {
   using SafeERC20 for IERC20;
 
   uint256 public constant MINIMUM_LIQUIDITY = 10**3; // pack this with unlocked?
-  SpaceToken public spaceTokenContract;
+  address public spaceToken;
   uint256 private tokenReserves;
   uint256 private ethReserves;
   uint256 private unlocked = 1;
@@ -24,7 +22,7 @@ contract Pair is ERC20 {
   }
 
   constructor(address _spaceTokenAddr) ERC20("LPToken", "LPT") {
-    spaceTokenContract = SpaceToken(_spaceTokenAddr);
+    spaceToken = _spaceTokenAddr;
   }
 
   function mint(address _to) external lock returns (uint256 liquidity) {
@@ -34,7 +32,7 @@ contract Pair is ERC20 {
     uint256 lpTokenSupply = totalSupply();
     if (lpTokenSupply == 0) {
       liquidity = _sqrt((tokenIn * ethIn) - MINIMUM_LIQUIDITY);
-      _mint(address(spaceTokenContract), MINIMUM_LIQUIDITY);
+      _mint(address(spaceToken), MINIMUM_LIQUIDITY);
     } else {
       liquidity = _min((tokenIn * lpTokenSupply) / tokenReserves, (ethIn * lpTokenSupply) / ethReserves);
     }
@@ -52,7 +50,7 @@ contract Pair is ERC20 {
     ethOut = (liquidity * ethBalance) / lpTokenSupply;
     _burn(address(this), liquidity);
     require(tokenOut > 0 && ethOut > 0, "Pair: INSUFFICIENT_OUTPUT");
-    spaceTokenContract.transfer(_to, tokenOut);
+    ISpaceToken(spaceToken).transfer(_to, tokenOut);
     (bool success, ) = _to.call{ value: ethOut }("");
     require(success, "Pair: FAILED_TO_SEND_ETH");
     _updateReserves();
@@ -66,7 +64,7 @@ contract Pair is ERC20 {
   ) external lock {
     require(_tokenOut > 0 || _ethOut > 0, "Pair: INSUFFICIENT_OUTPUT_AMOUNT");
     require(_tokenOut < tokenReserves && _ethOut < ethReserves, "Pair: INSUFFICIENT_RESERVES");
-    if (_tokenOut > 0) spaceTokenContract.transfer(_to, _tokenOut); // optimistically transfer
+    if (_tokenOut > 0) ISpaceToken(spaceToken).transfer(_to, _tokenOut); // optimistically transfer
     if (_ethOut > 0) {
       (bool success, ) = _to.call{ value: _ethOut }(""); // optimistically transfer
       require(success, "Pair: FAILED_TO_SEND_ETH");
@@ -91,7 +89,7 @@ contract Pair is ERC20 {
   }
 
   function _getBalances() private view returns (uint256 tokenBalance, uint256 ethBalance) {
-    tokenBalance = spaceTokenContract.balanceOf(address(this));
+    tokenBalance = ISpaceToken(spaceToken).balanceOf(address(this));
     ethBalance = address(this).balance;
   }
 

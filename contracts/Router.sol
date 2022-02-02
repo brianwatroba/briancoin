@@ -1,25 +1,24 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-import "hardhat/console.sol";
-import "./SpaceToken.sol";
-import "./Pair.sol";
+import "../interfaces/IPair.sol";
+import "../interfaces/ISpaceToken.sol";
 
 contract Router {
-  SpaceToken public spaceTokenContract;
-  Pair public pairContract;
+  address payable public spaceToken;
+  address payable public pair;
   uint256 public constant FEE_PERCENTAGE = 1;
 
   constructor(address payable _pairContractAddr, address payable _spaceTokenContractAddr) {
-    pairContract = Pair(_pairContractAddr);
-    spaceTokenContract = SpaceToken(_spaceTokenContractAddr);
+    pair = _pairContractAddr;
+    spaceToken = _spaceTokenContractAddr;
   }
 
   function addLiquidity(uint256 _amountToken, address _to) external payable returns (uint256 liquidity) {
-    spaceTokenContract.transferFrom(msg.sender, address(pairContract), _amountToken);
-    (bool success, ) = address(pairContract).call{ value: msg.value }("");
+    ISpaceToken(spaceToken).transferFrom(msg.sender, pair, _amountToken);
+    (bool success, ) = pair.call{ value: msg.value }("");
     require(success, "Router: FAILED_TO_SEND_ETH");
-    liquidity = pairContract.mint(_to);
+    liquidity = IPair(pair).mint(_to);
     // emit event
   }
 
@@ -27,27 +26,27 @@ contract Router {
     external
     returns (uint256 tokenOut, uint256 ethOut)
   {
-    pairContract.transferFrom(_to, address(pairContract), _liquidity);
-    (tokenOut, ethOut) = pairContract.burn(_to);
+    IPair(pair).transferFrom(_to, address(pair), _liquidity);
+    (tokenOut, ethOut) = IPair(pair).burn(_to);
     // emit event?
   }
 
   function swapETHforSPC(uint256 _tokenOutMin) external payable returns (uint256 tokenOut) {
-    (uint256 tokenReserves, uint256 ethReserves) = pairContract.getReserves();
+    (uint256 tokenReserves, uint256 ethReserves) = IPair(pair).getReserves();
     tokenOut = getAmountOut(msg.value, ethReserves, tokenReserves);
     require(tokenOut >= _tokenOutMin, "Router: MAX_SLIPPAGE_REACHED");
-    (bool success, ) = address(pairContract).call{ value: msg.value }("");
+    (bool success, ) = pair.call{ value: msg.value }("");
     require(success, "Router: FAILED_TO_SEND_ETH");
-    pairContract.swap(tokenOut, 0, msg.sender);
+    IPair(pair).swap(tokenOut, 0, msg.sender);
     // emit event?
   }
 
   function swapSPCforETH(uint256 _ethOutMin, uint256 _tokenIn) external returns (uint256 ethOut) {
-    (uint256 tokenReserves, uint256 ethReserves) = pairContract.getReserves();
+    (uint256 tokenReserves, uint256 ethReserves) = IPair(pair).getReserves();
     ethOut = getAmountOut(_tokenIn, tokenReserves, ethReserves);
     require(ethOut >= _ethOutMin, "Router: MAX_SLIPPAGE_REACHED");
-    spaceTokenContract.transferFrom(msg.sender, address(pairContract), _tokenIn);
-    pairContract.swap(0, ethOut, msg.sender);
+    ISpaceToken(spaceToken).transferFrom(msg.sender, address(pair), _tokenIn);
+    IPair(pair).swap(0, ethOut, msg.sender);
     // emit event?
   }
 
