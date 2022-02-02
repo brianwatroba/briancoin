@@ -7,12 +7,11 @@ import "../interfaces/ISpaceToken.sol";
 /**
  * @title Router
  * @dev Periphery contract meant to interact with core SpaceToken liquidity pool contract.
- * Performs important safety checks before invoking LP functions to add/remove liqudity and swap ETH/SPC.
  * Functionality: safety checks before adding/removing liquidity and swapping between ETH/SPC via core LP contract.
  */
 
 contract Router {
-  address payable public spaceToken;
+  address public spaceToken;
   address payable public pair;
   uint256 public constant FEE_PERCENTAGE = 1;
 

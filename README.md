@@ -1,42 +1,31 @@
-# Advanced Sample Hardhat Project
+# Week 4 Project: Liquidity Pool
 
-This project demonstrates an advanced Hardhat use case, integrating other tools commonly used alongside Hardhat in the ecosystem.
+#### _Brian Watroba, Block 3_
 
-The project comes with a sample contract, a test for that contract, a sample script that deploys that contract, and an example of a task implementation, which simply lists the available accounts. It also comes with a variety of other tools, preconfigured to work with the project code.
+**Rinkeby deployed contract addresses:**
 
-Try running some of the following tasks:
+- _Pair.sol:_ `0x293C4c780c4C6952279721ff676BEDc4595e9f64`
+- _Router.sol:_ `0xa030f2c2b84812DB0e08634EcbB0C45C50f465AC`
+- _Ico.sol:_ `0x8d36FB0C359e17a1a5449eb76424747895b5f637`
+- _SpaceToken.sol:_ `0x797bef1f37d098EEc3A8084e9AD3612894998cB8`
 
-```shell
-npx hardhat accounts
-npx hardhat compile
-npx hardhat clean
-npx hardhat test
-npx hardhat node
-npx hardhat help
-REPORT_GAS=true npx hardhat test
-npx hardhat coverage
-npx hardhat run scripts/deploy.js
-node scripts/deploy.js
-npx eslint '**/*.js'
-npx eslint '**/*.js' --fix
-npx prettier '**/*.{json,sol,md}' --check
-npx prettier '**/*.{json,sol,md}' --write
-npx solhint 'contracts/**/*.sol'
-npx solhint 'contracts/**/*.sol' --fix
-```
+**How to run this project**
 
-# Etherscan verification
+- Clone
+- Run `npm install` at root, and again in frontend directory
+- To run front end dev server: `cd frontend` and run `npm start` script
 
-To try out Etherscan verification, you first need to deploy a contract to an Ethereum network that's supported by Etherscan, such as Ropsten.
+### NOTES ON PROJECT CODE:
 
-In this project, copy the .env.example file to a file named .env, and then edit it to fill in the details. Enter your Etherscan API key, your Ropsten node URL (eg from Alchemy), and the private key of the account which will send the deployment transaction. With a valid .env file in place, first deploy your contract:
+- **SPC token tax - onus on user:** if SPC's tax/fee is enabled, this changes the amount the Pair contract receives relative to what the user believes they're sending. This has implications for "minimum out" values in swapping, as well as adding/removing liquidity. In my opinion, the onus should be on the user or front end to ensure amounts sent are adjusted to account for any token taxes. Uniswap appears to be designed the same way.
 
-```shell
-hardhat run --network ropsten scripts/deploy.js
-```
+### DESIGN EXERCISE:
 
-Then, copy the deployment address and paste it in to replace `DEPLOYED_CONTRACT_ADDRESS` in this command:
+**_Prompt:_** _How would you extend your LP contract to award additional rewards – say, a separate ERC-20 token – to further incentivize liquidity providers to deposit into your pool?_
 
-```shell
-npx hardhat verify --network ropsten DEPLOYED_CONTRACT_ADDRESS "Hello, Hardhat!"
-```
+**Answer:**
+
+- Utilize ERC-1155 to combine different ERC-20 standards within same LP contract
+- Have two ERC-20s within ERC-1155: standard LP token (current implementation), and a second ERC-20 to represent voting rights for fees and other features (similar to Uniswap).
+- My second ERC-20 would be attributed based on contract usage/contributions. For instance: historical trading volume, current liquidity provision percentage, etc.
+- I Would add DAO elements to allow voting/changes to aspects of the pool, like additional developer fee
