@@ -18,6 +18,7 @@
 ### NOTES ON PROJECT CODE:
 
 - **SPC token tax - onus on user:** if SPC's tax/fee is enabled, this changes the amount the Pair contract receives relative to what the user believes they're sending. This has implications for "minimum out" values in swapping, as well as adding/removing liquidity. In my opinion, the onus should be on the user or front end to ensure amounts sent are adjusted to account for any token taxes. Uniswap appears to be designed the same way.
+- **Allowances for token transfers are on front end:** ERC-20 transfers on behalf of traders/LPs are granted on project front end before calling relevant Router functions.
 
 ### DESIGN EXERCISE:
 
