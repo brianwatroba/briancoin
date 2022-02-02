@@ -77,45 +77,54 @@ provider.on("block", async (n) => {
 });
 
 lp_deposit.eth.addEventListener("input", (e) => {
+  lp_error_text.innerText = "";
   lp_deposit.spc.value = +e.target.value * currentSpcToEthPrice;
 });
 
 lp_deposit.spc.addEventListener("input", (e) => {
+  lp_error_text.innerText = "";
   lp_deposit.eth.value = +e.target.value / currentSpcToEthPrice;
 });
 
 lp_deposit.addEventListener("submit", async (e) => {
   e.preventDefault();
-  const form = e.target;
-  const eth = ethers.utils.parseEther(form.eth.value);
-  const spc = ethers.utils.parseEther(form.spc.value);
-  await connectToMetamask();
-  await spaceTokenContract.connect(signer).approve(contract.address, spc);
-  await contract.connect(signer).addLiquidity(spc, await signer.getAddress(), {
-    value: eth,
-  });
-  console.log("Depositing", eth, "eth and", spc, "spc");
+  try {
+    const form = e.target;
+    const eth = ethers.utils.parseEther(form.eth.value);
+    const spc = ethers.utils.parseEther(form.spc.value);
+    await connectToMetamask();
+    await spaceTokenContract.connect(signer).approve(contract.address, spc);
+    await contract.connect(signer).addLiquidity(spc, await signer.getAddress(), {
+      value: eth,
+    });
+    console.log("Depositing", eth, "eth and", spc, "spc");
+  } catch (error) {
+    lp_error_text.innerText = `Error: ${error.error.message}`;
+  }
 });
 
 lp_withdraw.addEventListener("submit", async (e) => {
   e.preventDefault();
-
-  await connectToMetamask();
-  const liquidity = await pairContract.balanceOf(await signer.getAddress());
-  await pairContract.connect(signer).approve(contract.address, liquidity);
-  await contract.connect(signer).removeLiquidity(liquidity, await signer.getAddress());
-  console.log("Withdrawing 100% of LP");
+  try {
+    await connectToMetamask();
+    const liquidity = await pairContract.balanceOf(await signer.getAddress());
+    await pairContract.connect(signer).approve(contract.address, liquidity);
+    await contract.connect(signer).removeLiquidity(liquidity, await signer.getAddress());
+    console.log("Withdrawing 100% of LP");
+  } catch (error) {
+    lp_error_text.innerText = `Error: ${error.error.message}`;
+  }
 });
 
 //
 // Swap
 //
-let swapIn = { type: "eth", value: 0 };
-let swapOut = { type: "spc", value: 0 };
+let swapIn = { type: "eth", value: ethers.BigNumber.from(0) };
+let swapOut = { type: "spc", value: ethers.BigNumber.from(0) };
 switcher.addEventListener("click", () => {
   [swapIn, swapOut] = [swapOut, swapIn];
   swap_in_label.innerText = swapIn.type.toUpperCase();
-  swap.amount_in.value = swapIn.value;
+  swap.amount_in.value = swap.value;
   updateSwapOutLabel();
 });
 
@@ -123,36 +132,37 @@ swap.amount_in.addEventListener("input", updateSwapOutLabel);
 
 async function updateSwapOutLabel() {
   const [tokenReserves, ethReserves] = await pairContract.getReserves();
-  console.log(swap.amount_in.value);
-  // if (swap.amount_in.value > 0) {
-  if (swap.amount_in.value !== "") {
+  swap_error_text.innerText = "";
+  if (swap.amount_in.value !== "" && swap.amount_in.value > 0) {
     swapOut.value =
-      // swapIn.type === "eth" ? +swap.amount_in.value * currentSpcToEthPrice : +swap.amount_in.value / currentSpcToEthPrice;
-
       swapIn.type === "eth"
-        ? await contract.getAmountOut(swap.amount_in.value, ethReserves, tokenReserves)
-        : await contract.getAmountOut(swap.amount_in.value, tokenReserves, ethReserves);
+        ? await contract.getAmountOut(ethToWei(swap.amount_in.value), ethReserves, tokenReserves)
+        : await contract.getAmountOut(ethToWei(swap.amount_in.value), tokenReserves, ethReserves);
   } else {
-    swapOut.value = 0;
+    swapOut.value = ethers.BigNumber.from(0);
   }
-
-  swap_out_label.innerText = `to receive: ${swapOut.value} ${swapOut.type.toUpperCase()}`;
-  // } else {
-  //   swapOut.value = 0;
-  // }
+  swap_out_label.innerText = `Estimated trade value: ${weiToEth(swapOut.value)} ${swapOut.type.toUpperCase()}`;
 }
 
 swap.addEventListener("submit", async (e) => {
   e.preventDefault();
   const form = e.target;
   const amountIn = ethers.utils.parseEther(form.amount_in.value);
+  const minAmountOut = ethers.utils.parseEther(form.min_amount_out.value);
+  console.log(amountIn, minAmountOut);
 
-  console.log("Swapping", amountIn, swapIn.type, "for", swapOut.type);
+  console.log("Swapping", amountIn, swapIn.type, "for", swapOut.type, "Min amount out", minAmountOut);
 
-  if (swapIn.type === "eth") {
-    await contract.connect(signer).swapETHforSPC(0, { value: amountIn });
-  } else if (swapIn.type === "spc") {
-    await contract.connect(signer).swapSPCforETH(0, amountIn);
+  try {
+    if (swapIn.type === "eth") {
+      await contract.connect(signer).swapETHforSPC(minAmountOut, { value: amountIn });
+    } else if (swapIn.type === "spc") {
+      await spaceTokenContract.connect(signer).approve(contract.address, amountIn);
+      await contract.connect(signer).swapSPCforETH(minAmountOut, amountIn);
+    }
+  } catch (error) {
+    console.log(error);
+    swap_error_text.innerText = `Error: ${error.error.message}`;
   }
 
   await connectToMetamask();

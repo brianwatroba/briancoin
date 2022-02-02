@@ -22,13 +22,15 @@
     Deposit for LP tokens <br />
     <input name="eth" value="0" autocomplete="off" /> ETH<br />
     <input name="spc" value="0" autocomplete="off" /> SPC<br />
-    <button type="submit">Deposit</button>
+
+    <button type="submit">Deposit</button><br />
   </form>
 
   <form id="lp_withdraw">
     Withdraw from pool <br />
     <button type="submit">Withdraw All</button>
   </form>
+  <span id="lp_error_text"></span>
 </section>
 
 <section>
@@ -42,9 +44,9 @@
     <input name="min_amount_out" value="0" autocomplete="off" /> <span id="min_amount_out_label">Min amount out</span>
 
     <br />
-    <span id="swap_out_label">to receive: 0 SPC</span><br />
-    <!-- <input name="min_amount_out" value="0" autocomplete="off" /> <span id="min_amount_out_label">Min amount out</span>
-    <br /> -->
+    <span id="swap_out_label">Estimated trade value: 0 SPC</span><br />
+    <span id="swap_error_text"></span>
+    <br />
     <button type="submit">Trade</button>
   </form>
 </section>
