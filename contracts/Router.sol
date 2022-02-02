@@ -19,7 +19,6 @@ contract Router {
     (bool success, ) = pair.call{ value: msg.value }("");
     require(success, "Router: FAILED_TO_SEND_ETH");
     liquidity = IPair(pair).mint(_to);
-    // emit event
   }
 
   function removeLiquidity(uint256 _liquidity, address payable _to)
@@ -28,7 +27,6 @@ contract Router {
   {
     IPair(pair).transferFrom(_to, address(pair), _liquidity);
     (tokenOut, ethOut) = IPair(pair).burn(_to);
-    // emit event?
   }
 
   function swapETHforSPC(uint256 _tokenOutMin) external payable returns (uint256 tokenOut) {
@@ -38,7 +36,6 @@ contract Router {
     (bool success, ) = pair.call{ value: msg.value }("");
     require(success, "Router: FAILED_TO_SEND_ETH");
     IPair(pair).swap(tokenOut, 0, msg.sender);
-    // emit event?
   }
 
   function swapSPCforETH(uint256 _ethOutMin, uint256 _tokenIn) external returns (uint256 ethOut) {
@@ -47,7 +44,6 @@ contract Router {
     require(ethOut >= _ethOutMin, "Router: MAX_SLIPPAGE_REACHED");
     ISpaceToken(spaceToken).transferFrom(msg.sender, address(pair), _tokenIn);
     IPair(pair).swap(0, ethOut, msg.sender);
-    // emit event?
   }
 
   function getAmountOut(

@@ -8,11 +8,11 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 contract Pair is ERC20 {
   using SafeERC20 for IERC20;
 
-  uint256 public constant MINIMUM_LIQUIDITY = 10**3; // pack this with unlocked?
   address public spaceToken;
   uint256 private tokenReserves;
   uint256 private ethReserves;
-  uint256 private unlocked = 1;
+  uint128 public constant MINIMUM_LIQUIDITY = 10**3;
+  uint128 private unlocked = 1;
 
   modifier lock() {
     require(unlocked == 1, "Pair: LOCKED");
@@ -39,7 +39,7 @@ contract Pair is ERC20 {
     require(liquidity > 0, "Pair: INSUFFICIENT_LIQUIDITY");
     _mint(_to, liquidity);
     _updateReserves();
-    // emit event
+    emit Mint(msg.sender, tokenIn, ethIn);
   }
 
   function burn(address payable _to) external lock returns (uint256 tokenOut, uint256 ethOut) {
@@ -54,7 +54,7 @@ contract Pair is ERC20 {
     (bool success, ) = _to.call{ value: ethOut }("");
     require(success, "Pair: FAILED_TO_SEND_ETH");
     _updateReserves();
-    // emit event
+    emit Burn(msg.sender, tokenOut, ethOut, _to);
   }
 
   function swap(
@@ -80,7 +80,7 @@ contract Pair is ERC20 {
       "Pair: INCORRECT_K_VALUE"
     );
     _updateReserves();
-    // emit event
+    emit Swap(msg.sender, tokenIn, ethIn, _tokenOut, _ethOut, _to);
   }
 
   function getReserves() public view returns (uint256 _tokenReserves, uint256 _ethReserves) {
@@ -97,7 +97,6 @@ contract Pair is ERC20 {
     (uint256 tokenBalance, uint256 ethBalance) = _getBalances();
     tokenReserves = tokenBalance;
     ethReserves = ethBalance;
-    //emit event
   }
 
   // taken from UNI
@@ -118,6 +117,17 @@ contract Pair is ERC20 {
       z = 1;
     }
   }
+
+  event Mint(address indexed sender, uint256 tokenIn, uint256 ethOut);
+  event Burn(address indexed sender, uint256 tokenOut, uint256 ethOut, address indexed to);
+  event Swap(
+    address indexed sender,
+    uint256 tokenIn,
+    uint256 ethIn,
+    uint256 tokenOut,
+    uint256 ethOut,
+    address indexed to
+  );
 
   receive() external payable {}
 }
