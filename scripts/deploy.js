@@ -7,14 +7,14 @@ async function main() {
 
   const IcoFactory = await ethers.getContractFactory("Ico");
   const icoContract = await IcoFactory.deploy([deployer.address]);
-  const spaceTokenContract = await ethers.getContractAt("SpaceToken", await icoContract.tokenContract());
-  const pairContract = await (await ethers.getContractFactory("Pair")).deploy(spaceTokenContract.address);
+  const brianCoinContract = await ethers.getContractAt("BrianCoin", await icoContract.tokenContract());
+  const pairContract = await (await ethers.getContractFactory("Pair")).deploy(brianCoinContract.address);
   const routerContract = await (
     await ethers.getContractFactory("Router")
-  ).deploy(pairContract.address, spaceTokenContract.address);
+  ).deploy(pairContract.address, brianCoinContract.address);
 
   console.log("Ico address:", icoContract.address);
-  console.log("SpaceToken address:", spaceTokenContract.address);
+  console.log("BrianCoin address:", brianCoinContract.address);
   console.log("Pair address:", pairContract.address);
   console.log("Router address:", routerContract.address);
 }

@@ -2,22 +2,22 @@ import { ethers } from "ethers";
 import RouterJSON from "../../artifacts/contracts/Router.sol/Router.json";
 import PairJSON from "../../artifacts/contracts/Pair.sol/Pair.json";
 import IcoJSON from "../../artifacts/contracts/Ico.sol/Ico.json";
-import SpaceTokenJSON from "../../artifacts/contracts/SpaceToken.sol/SpaceToken.json";
+import BrianCoinJSON from "../../artifacts/contracts/BrianCoin.sol/BrianCoin.json";
 
 const provider = new ethers.providers.Web3Provider(window.ethereum);
 const signer = provider.getSigner();
 
-const routerAddr = "0xa030f2c2b84812DB0e08634EcbB0C45C50f465AC";
+const routerAddr = "0xFD6026bfbaFcA0e12f190C7aD31054408C0408cF";
 const contract = new ethers.Contract(routerAddr, RouterJSON.abi, provider);
 
-const pairAddr = "0x293C4c780c4C6952279721ff676BEDc4595e9f64";
+const pairAddr = "0x2aC0DBe6fA76d959cBA5eB1F86390bEb83F3406A";
 const pairContract = new ethers.Contract(pairAddr, PairJSON.abi, provider);
 
-const IcoAddr = "0x8d36FB0C359e17a1a5449eb76424747895b5f637";
+const IcoAddr = "0xDC58d35E083F28D398333670b25F28501E4f2C74";
 const icoContract = new ethers.Contract(IcoAddr, IcoJSON.abi, provider);
 
-const SpaceTokenAddr = "0x797bef1f37d098EEc3A8084e9AD3612894998cB8";
-const spaceTokenContract = new ethers.Contract(SpaceTokenAddr, SpaceTokenJSON.abi, provider);
+const BrianCoinAddr = "0x6f2CA1D00748cfe95c4B1cbC151ebACE8FbAEA6D";
+const brianCoinContract = new ethers.Contract(BrianCoinAddr, BrianCoinJSON.abi, provider);
 
 window.ethers = ethers;
 window.provider = provider;
@@ -47,7 +47,7 @@ async function connectToMetamask() {
 //
 // ICO
 //
-ico_spc_buy.addEventListener("submit", async (e) => {
+ico_bri_buy.addEventListener("submit", async (e) => {
   e.preventDefault();
   const form = e.target;
   const eth = ethers.utils.parseEther(form.eth.value);
@@ -65,25 +65,25 @@ ico_spc_buy.addEventListener("submit", async (e) => {
 //
 // LP
 //
-let currentSpcToEthPrice = 5;
+let currentBriToEthPrice = 5;
 
 provider.on("block", async (n) => {
   console.log("New block", n);
-  const spcLeftInICO = await spaceTokenContract.balanceOf(icoContract.address);
-  ico_spc_left.innerText = weiToEth(spcLeftInICO);
+  const briLeftInICO = await brianCoinContract.balanceOf(icoContract.address);
+  ico_bri_left.innerText = weiToEth(briLeftInICO);
   const [tokenReserves, ethReserves] = await pairContract.getReserves();
-  if (tokenReserves && ethReserves) currentSpcToEthPrice = tokenReserves / ethReserves;
+  if (tokenReserves && ethReserves) currentBriToEthPrice = tokenReserves / ethReserves;
   const liquidity = await pairContract.balanceOf(signer.getAddress());
 });
 
 lp_deposit.eth.addEventListener("input", (e) => {
   lp_error_text.innerText = "";
-  lp_deposit.spc.value = +e.target.value * currentSpcToEthPrice;
+  lp_deposit.bri.value = +e.target.value * currentBriToEthPrice;
 });
 
-lp_deposit.spc.addEventListener("input", (e) => {
+lp_deposit.bri.addEventListener("input", (e) => {
   lp_error_text.innerText = "";
-  lp_deposit.eth.value = +e.target.value / currentSpcToEthPrice;
+  lp_deposit.eth.value = +e.target.value / currentBriToEthPrice;
 });
 
 lp_deposit.addEventListener("submit", async (e) => {
@@ -91,13 +91,13 @@ lp_deposit.addEventListener("submit", async (e) => {
   try {
     const form = e.target;
     const eth = ethers.utils.parseEther(form.eth.value);
-    const spc = ethers.utils.parseEther(form.spc.value);
+    const bri = ethers.utils.parseEther(form.bri.value);
     await connectToMetamask();
-    await spaceTokenContract.connect(signer).approve(contract.address, spc);
-    await contract.connect(signer).addLiquidity(spc, await signer.getAddress(), {
+    await brianCoinContract.connect(signer).approve(contract.address, bri);
+    await contract.connect(signer).addLiquidity(bri, await signer.getAddress(), {
       value: eth,
     });
-    console.log("Depositing", eth, "eth and", spc, "spc");
+    console.log("Depositing", eth, "eth and", bri, "bri");
   } catch (error) {
     lp_error_text.innerText = `Error: ${error.error.message}`;
   }
@@ -120,7 +120,7 @@ lp_withdraw.addEventListener("submit", async (e) => {
 // Swap
 //
 let swapIn = { type: "eth", value: ethers.BigNumber.from(0) };
-let swapOut = { type: "spc", value: ethers.BigNumber.from(0) };
+let swapOut = { type: "bri", value: ethers.BigNumber.from(0) };
 switcher.addEventListener("click", () => {
   [swapIn, swapOut] = [swapOut, swapIn];
   swap_in_label.innerText = swapIn.type.toUpperCase();
@@ -155,10 +155,10 @@ swap.addEventListener("submit", async (e) => {
 
   try {
     if (swapIn.type === "eth") {
-      await contract.connect(signer).swapETHforSPC(minAmountOut, { value: amountIn });
-    } else if (swapIn.type === "spc") {
-      await spaceTokenContract.connect(signer).approve(contract.address, amountIn);
-      await contract.connect(signer).swapSPCforETH(minAmountOut, amountIn);
+      await contract.connect(signer).swapETHforBRI(minAmountOut, { value: amountIn });
+    } else if (swapIn.type === "bri") {
+      await BrianCoinContract.connect(signer).approve(contract.address, amountIn);
+      await contract.connect(signer).swapBRIforETH(minAmountOut, amountIn);
     }
   } catch (error) {
     console.log(error);

@@ -6,10 +6,10 @@
 <section>
   <h2>ICO</h2>
 
-  <div>SPC left to buy: <span id="ico_spc_left"></span></div>
+  <div>BRI left to buy: <span id="ico_bri_left"></span></div>
 
-  <form id="ico_spc_buy">
-    ETH to spend (receive 5x SPC):
+  <form id="ico_bri_buy">
+    ETH to spend (receive 5x BRI):
     <input name="eth" value="0.1" autocomplete="off">
     <button type="submit">Buy and claim</button>
   </form>
@@ -21,7 +21,7 @@
   <form id="lp_deposit">
     Deposit for LP tokens <br>
     <input name="eth" value="0" autocomplete="off"> ETH<br>
-    <input name="spc" value="0" autocomplete="off"> SPC<br>
+    <input name="bri" value="0" autocomplete="off"> BRI<br>
 
     <button type="submit">Deposit</button><br>
   </form>
@@ -37,14 +37,14 @@
   <h2>Trade</h2>
 
   <form id="swap">
-    Trade SPC for ETH <br>
+    Trade BRI for ETH <br>
     <input name="amount_in" value="0" autocomplete="off"> <span id="swap_in_label">ETH</span>
     <small id="switcher" style="text-decoration: underline; cursor: pointer">swap</small>
     <br>
     <input name="min_amount_out" value="0" autocomplete="off"> <span id="min_amount_out_label">Min amount out</span>
 
     <br>
-    <span id="swap_out_label">Estimated trade value: 0 SPC</span><br>
+    <span id="swap_out_label">Estimated trade value: 0 BRI</span><br>
     <span id="swap_error_text"></span>
     <br>
     <button type="submit">Trade</button>
