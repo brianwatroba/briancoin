@@ -1,21 +1,21 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-import "../interfaces/ISpaceToken.sol";
+import "../interfaces/IBrianCoin.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title Pair
- * @dev Core liquidity pool contract for SpaceToken (SPC). Non-view functions should
+ * @dev Core liquidity pool contract for BrianCoin (BRI). Non-view functions should
  * be called via a Router or periphery contract that performs important safety checks.
- * Functionality: adding/removing liquidity and swapping between ETH/SPC.
+ * Functionality: adding/removing liquidity and swapping between ETH/BRI.
  */
 
 contract Pair is ERC20 {
   using SafeERC20 for IERC20;
 
-  address public spaceToken;
+  address public brianCoin;
   uint256 private tokenReserves;
   uint256 private ethReserves;
   uint128 public constant MINIMUM_LIQUIDITY = 10**3;
@@ -28,8 +28,8 @@ contract Pair is ERC20 {
     unlocked = 1;
   }
 
-  constructor(address _spaceTokenAddr) ERC20("LPToken", "LPT") {
-    spaceToken = _spaceTokenAddr;
+  constructor(address _brianCoinAddr) ERC20("LPToken", "LPT") {
+    brianCoin = _brianCoinAddr;
   }
 
   /// @dev Add liquidity to pool, award LP tokens to provider based on contribution share
@@ -40,7 +40,7 @@ contract Pair is ERC20 {
     uint256 lpTokenSupply = totalSupply();
     if (lpTokenSupply == 0) {
       liquidity = _sqrt((tokenIn * ethIn) - MINIMUM_LIQUIDITY);
-      _mint(address(spaceToken), MINIMUM_LIQUIDITY);
+      _mint(address(brianCoin), MINIMUM_LIQUIDITY);
     } else {
       liquidity = _min((tokenIn * lpTokenSupply) / tokenReserves, (ethIn * lpTokenSupply) / ethReserves);
     }
@@ -50,7 +50,7 @@ contract Pair is ERC20 {
     emit Mint(msg.sender, tokenIn, ethIn);
   }
 
-  /// @dev Remove liquidity from pool, burn LP tokens to provider based on contribution share, return SPC/ETH
+  /// @dev Remove liquidity from pool, burn LP tokens to provider based on contribution share, return BRI/ETH
   function burn(address payable _to) external lock returns (uint256 tokenOut, uint256 ethOut) {
     (uint256 tokenBalance, uint256 ethBalance) = _getBalances();
     uint256 lpTokenSupply = totalSupply();
@@ -59,14 +59,14 @@ contract Pair is ERC20 {
     ethOut = (liquidity * ethBalance) / lpTokenSupply;
     _burn(address(this), liquidity);
     require(tokenOut > 0 && ethOut > 0, "Pair: INSUFFICIENT_OUTPUT");
-    ISpaceToken(spaceToken).transfer(_to, tokenOut);
+    IBrianCoin(brianCoin).transfer(_to, tokenOut);
     (bool success, ) = _to.call{ value: ethOut }("");
     require(success, "Pair: FAILED_TO_SEND_ETH");
     _updateReserves();
     emit Burn(msg.sender, tokenOut, ethOut, _to);
   }
 
-  /// @dev Trade between SPC/ETH, amounts must observe constant product formula
+  /// @dev Trade between BRI/ETH, amounts must observe constant product formula
   function swap(
     uint256 _tokenOut,
     uint256 _ethOut,
@@ -74,7 +74,7 @@ contract Pair is ERC20 {
   ) external lock {
     require(_tokenOut > 0 || _ethOut > 0, "Pair: INSUFFICIENT_OUTPUT_AMOUNT");
     require(_tokenOut < tokenReserves && _ethOut < ethReserves, "Pair: INSUFFICIENT_RESERVES");
-    if (_tokenOut > 0) ISpaceToken(spaceToken).transfer(_to, _tokenOut); // optimistically transfer
+    if (_tokenOut > 0) IBrianCoin(brianCoin).transfer(_to, _tokenOut); // optimistically transfer
     if (_ethOut > 0) {
       (bool success, ) = _to.call{ value: _ethOut }(""); // optimistically transfer
       require(success, "Pair: FAILED_TO_SEND_ETH");
@@ -93,15 +93,15 @@ contract Pair is ERC20 {
     emit Swap(msg.sender, tokenIn, ethIn, _tokenOut, _ethOut, _to);
   }
 
-  /// @dev Get contract's SPC/ETH reserves (cached values)
+  /// @dev Get contract's BRI/ETH reserves (cached values)
   function getReserves() public view returns (uint256 _tokenReserves, uint256 _ethReserves) {
     _tokenReserves = tokenReserves;
     _ethReserves = ethReserves;
   }
 
-  /// @dev Get current SPC/ETH balances from SpaceToken contract/this contract's balances
+  /// @dev Get current BRI/ETH balances from BrianCoin contract/this contract's balances
   function _getBalances() private view returns (uint256 tokenBalance, uint256 ethBalance) {
-    tokenBalance = ISpaceToken(spaceToken).balanceOf(address(this));
+    tokenBalance = IBrianCoin(brianCoin).balanceOf(address(this));
     ethBalance = address(this).balance;
   }
 

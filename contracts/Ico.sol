@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./SpaceToken.sol";
+import "./BrianCoin.sol";
 import "../interfaces/IRouter.sol";
 
 /**
  * @title Ico
- * @dev An ICO contract that initializes a separate ERC-20 SpaceToken contract,
- * allows individuals to contribute ETH in return for an exchange of SpaceTokens,
- * and eventually withdraw their SpaceTokens in the final OPEN phase.
+ * @dev An ICO contract that initializes a separate ERC-20 BrianCoin contract,
+ * allows individuals to contribute ETH in return for an exchange of BrianCoins,
+ * and eventually withdraw their BrianCoins in the final OPEN phase.
  */
 
 contract Ico {
@@ -18,7 +18,7 @@ contract Ico {
     OPEN
   }
   address public owner;
-  SpaceToken public tokenContract;
+  BrianCoin public tokenContract;
   phases public currentPhase;
   uint256 public contributionsTotal;
   uint256 public constant TOKEN_CONVERSION_RATE = 5;
@@ -41,10 +41,10 @@ contract Ico {
     for (uint256 i = 0; i < _whitelistAddresses.length; i++) {
       whitelist[_whitelistAddresses[i]] = 1;
     }
-    tokenContract = new SpaceToken(500000);
+    tokenContract = new BrianCoin(500000);
   }
 
-  /// @dev Owner can add liquidity to SPC LP core contract, pulling out ETH and SPC
+  /// @dev Owner can add liquidity to BRI LP core contract, pulling out ETH and BRI
   function withdraw(
     address payable _routerAddress,
     uint256 _tokenAmount,
@@ -68,7 +68,7 @@ contract Ico {
     emit TogglePaused(paused);
   }
 
-  /// @dev Individuals can exchange ETH for SpaceTokens
+  /// @dev Individuals can exchange ETH for BrianCoins
   function contribute() external payable onlyIfNotPaused {
     require(msg.value + contributionsTotal <= 30000 ether, "cannot contribute more than ICO goal");
     if (currentPhase == phases.SEED) {
@@ -90,7 +90,7 @@ contract Ico {
     emit Contribute(msg.sender, msg.value);
   }
 
-  /// @dev Contributors can get access to their SpaceTokens
+  /// @dev Contributors can get access to their BrianCoins
   function claimTokens() external onlyIfNotPaused {
     require(currentPhase == phases.OPEN, "ICO must be in open phase to claim tokens");
     uint256 contributed = contributions[msg.sender];

@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-interface ISpaceToken is IERC20 {
+interface IBrianCoin is IERC20 {
   function toggleFeeEnabled() external;
 
   function transfer(address _recipient, uint256 _amount) external override returns (bool);

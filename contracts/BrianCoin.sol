@@ -5,20 +5,20 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
- * @title SpaceToken
- * @dev Standard ERC-20 token contract for SpaceToken. Differences:
+ * @title BrianCoin
+ * @dev Standard ERC-20 token contract for BrianCoin. Differences:
  * imposes a 2% fee (paid to treasury) on all transfers if fee is enabled. Owner
  * can control if fee is enabled.
  */
 
-contract SpaceToken is ERC20 {
+contract BrianCoin is ERC20 {
   using SafeERC20 for IERC20;
 
   address public treasury;
   address public owner;
   bool public feeEnabled = false;
 
-  constructor(uint256 _maxSupply) ERC20("SpaceCoin", "SPC") {
+  constructor(uint256 _maxSupply) ERC20("BrianCoin", "BRI") {
     treasury = msg.sender;
     owner = tx.origin;
     _mint(treasury, _maxSupply * 10**18);

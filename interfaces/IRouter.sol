@@ -6,9 +6,9 @@ interface IRouter {
 
   function removeLiquidity(uint256 _liquidity, address payable _to) external returns (uint256 tokenOut, uint256 ethOut);
 
-  function swapETHforSPC(uint256 _tokenOutMin) external payable returns (uint256 tokenOut);
+  function swapETHforBRI(uint256 _tokenOutMin) external payable returns (uint256 tokenOut);
 
-  function swapSPCforETH(uint256 _ethOutMin, uint256 _tokenIn) external returns (uint256 ethOut);
+  function swapBRIforETH(uint256 _ethOutMin, uint256 _tokenIn) external returns (uint256 ethOut);
 
   function getAmountOut(
     uint256 _amountIn,
